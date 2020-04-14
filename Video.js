@@ -12,7 +12,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 });
-
+  
 export { TextTrackType, FilterType };
 
 export default class Video extends Component {

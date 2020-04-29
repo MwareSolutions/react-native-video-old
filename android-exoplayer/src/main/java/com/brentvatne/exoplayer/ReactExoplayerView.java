@@ -38,10 +38,17 @@ import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
+import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
+import com.google.android.exoplayer2.drm.DrmSessionManager;
+import com.google.android.exoplayer2.drm.FrameworkMediaCrypto;
+import com.google.android.exoplayer2.drm.FrameworkMediaDrm;
+import com.google.android.exoplayer2.drm.HttpMediaDrmCallback;
+import com.google.android.exoplayer2.drm.UnsupportedDrmException;
 import com.google.android.exoplayer2.mediacodec.MediaCodecRenderer;
 import com.google.android.exoplayer2.mediacodec.MediaCodecUtil;
 import com.google.android.exoplayer2.metadata.Metadata;
 import com.google.android.exoplayer2.metadata.MetadataOutput;
+import com.google.android.exoplayer2.metadata.MetadataRenderer;
 import com.google.android.exoplayer2.source.BehindLiveWindowException;
 import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.source.MergingMediaSource;
@@ -64,6 +71,8 @@ import com.google.android.exoplayer2.upstream.BandwidthMeter;
 import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultAllocator;
 import com.google.android.exoplayer2.upstream.DefaultBandwidthMeter;
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSourceFactory;
+import com.google.android.exoplayer2.upstream.HttpDataSource;
 import com.google.android.exoplayer2.util.Util;
 
 import java.net.CookieHandler;
@@ -72,6 +81,7 @@ import java.net.CookiePolicy;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 @SuppressLint("ViewConstructor")
 class ReactExoplayerView extends FrameLayout implements
@@ -80,8 +90,7 @@ class ReactExoplayerView extends FrameLayout implements
         BandwidthMeter.EventListener,
         BecomingNoisyListener,
         AudioManager.OnAudioFocusChangeListener,
-        MetadataRenderer.Output,
-        DefaultDrmSessionManager.EventListener{
+        MetadataRenderer.Output{
 
     private static final String TAG = "ReactExoplayerView";
 
@@ -144,9 +153,9 @@ class ReactExoplayerView extends FrameLayout implements
     private Map<String, String> requestHeaders;
     private boolean mReportBandwidth = false;
     private boolean controls;
-    private UUID drmUUID = null;
-    private String drmLicenseUrl = null;
-    private String[] drmLicenseHeader = null;    // \ End props
+    public UUID drmUUID = null;
+    public String drmLicenseUrl = null;
+    public String[] drmLicenseHeader = null;    // \ End props
 
     // React
     private final ThemedReactContext themedReactContext;
@@ -417,11 +426,12 @@ class ReactExoplayerView extends FrameLayout implements
                     defaultLoadControlBuilder.setBufferDurationsMs(minBufferMs, maxBufferMs, bufferForPlaybackMs, bufferForPlaybackAfterRebufferMs);
                     defaultLoadControlBuilder.setTargetBufferBytes(-1);
                     defaultLoadControlBuilder.setPrioritizeTimeOverSizeThresholds(true);
-                    DefaultLoadControl defaultLoadControl = defaultLoadControlBuilder.createDefaultLoadControl();           DrmSessionManager<FrameworkMediaCrypto> drmSessionManager = null;
-                    if (this.drmUUID != null) {
+                    DefaultLoadControl defaultLoadControl = defaultLoadControlBuilder.createDefaultLoadControl();
+
+                    DrmSessionManager<FrameworkMediaCrypto> drmSessionManager = null;
+                    if (drmUUID != null) {
                         try {
-                            drmSessionManager = buildDrmSessionManager(this.drmUUID, this.drmLicenseUrl,
-                                    this.drmLicenseHeader);
+                            drmSessionManager = buildDrmSessionManager(drmUUID, drmLicenseUrl, drmLicenseHeader);
                         } catch (UnsupportedDrmException e) {
                             int errorStringId = Util.SDK_INT < 18 ? R.string.error_drm_not_supported
                                     : (e.reason == UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME
@@ -429,11 +439,10 @@ class ReactExoplayerView extends FrameLayout implements
                             Log.d("Drm Info", getResources().getString(errorStringId));
                             return;
                         }
-                    }                    
-                    
-                    DefaultRenderersFactory renderersFactory =
-                            new DefaultRenderersFactory(getContext())
-                                    .setExtensionRendererMode(drmSessionManager, DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF);
+                    }
+                    DefaultRenderersFactory renderersFactory = new DefaultRenderersFactory(getContext(), drmSessionManager, DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER);
+
+                    //DefaultRenderersFactory renderersFactory = new DefaultRenderersFactory(getContext()).setExtensionRendererMode(drmSessionManager, DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF);
                     // TODO: Add drmSessionManager to 5th param from: https://github.com/react-native-community/react-native-video/pull/1445
                     player = ExoPlayerFactory.newSimpleInstance(getContext(), renderersFactory,
                             trackSelector, defaultLoadControl, null, bandwidthMeter);
@@ -480,32 +489,41 @@ class ReactExoplayerView extends FrameLayout implements
             }
         }, 1);
     }
-    private DrmSessionManager<FrameworkMediaCrypto> buildDrmSessionManager(UUID uuid,
-                                                                           String licenseUrl, String[] keyRequestPropertiesArray) throws UnsupportedDrmException {
-        if (Util.SDK_INT < 18) {
-            return null;
-        }
-        HttpMediaDrmCallback drmCallback = new HttpMediaDrmCallback(licenseUrl,
-                buildHttpDataSourceFactory(false));
+    private DrmSessionManager<FrameworkMediaCrypto> buildDrmSessionManager(UUID uuid, String licenseUrl, String[] keyRequestPropertiesArray) throws UnsupportedDrmException {
+        HttpMediaDrmCallback drmCallback = new HttpMediaDrmCallback(licenseUrl, buildHttpDataSourceFactory(false));
         if (keyRequestPropertiesArray != null) {
             for (int i = 0; i < keyRequestPropertiesArray.length - 1; i += 2) {
-                drmCallback.setKeyRequestProperty(keyRequestPropertiesArray[i],
-                        keyRequestPropertiesArray[i + 1]);
+                drmCallback.setKeyRequestProperty(keyRequestPropertiesArray[i], keyRequestPropertiesArray[i + 1]);
             }
         }
-        return new DefaultDrmSessionManager<>(uuid,
-                FrameworkMediaDrm.newInstance(uuid), drmCallback, null, mainHandler, this);
+
+        return new DefaultDrmSessionManager<>(uuid, FrameworkMediaDrm.newInstance(uuid), drmCallback, null, false);
     }
+
+
+//    private DrmSessionManager<FrameworkMediaCrypto> buildDrmSessionManager(UUID uuid, String licenseUrl, String[] keyRequestPropertiesArray) throws UnsupportedDrmException {
+//        if (Util.SDK_INT < 18) {
+//            return null;
+//        }
+//        HttpMediaDrmCallback drmCallback = new HttpMediaDrmCallback(licenseUrl,
+//                buildHttpDataSourceFactory(false));
+//        if (keyRequestPropertiesArray != null) {
+//            for (int i = 0; i < keyRequestPropertiesArray.length - 1; i += 2) {
+//                drmCallback.setKeyRequestProperty(keyRequestPropertiesArray[i],
+//                        keyRequestPropertiesArray[i + 1]);
+//            }
+//        }
+//        return new DefaultDrmSessionManager<T>(uuid, FrameworkMediaDrm.newInstance(uuid), drmCallback, null, null, this);
+//    }
 
     /**
      * Returns a new HttpDataSource factory.
      *
-     * @param useBandwidthMeter Whether to set {@link #BANDWIDTH_METER} as a listener to the new
      *     DataSource factory.
      * @return A new HttpDataSource factory.
      */
     private HttpDataSource.Factory buildHttpDataSourceFactory(boolean useBandwidthMeter) {
-        return new DefaultHttpDataSourceFactory("sctv", useBandwidthMeter ? BANDWIDTH_METER : null);
+        return new DefaultHttpDataSourceFactory("sctv", null);
     }
     private MediaSource buildMediaSource(Uri uri, String overrideExtension) {
         int type = Util.inferContentType(!TextUtils.isEmpty(overrideExtension) ? "." + overrideExtension
@@ -1270,6 +1288,7 @@ class ReactExoplayerView extends FrameLayout implements
         this.disableFocus = disableFocus;
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
     public void setFullscreen(boolean fullscreen) {
         if (fullscreen == isFullscreen) {
             return; // Avoid generating events when nothing is changing
@@ -1361,22 +1380,22 @@ class ReactExoplayerView extends FrameLayout implements
     }
 
 
-    @Override
+
     public void onDrmKeysLoaded() {
         Log.d("DRM Info", "onDrmKeysLoaded");
     }
 
-    @Override
+
     public void onDrmSessionManagerError(Exception e) {
         Log.d("DRM Info", "onDrmSessionManagerError");
     }
 
-    @Override
+
     public void onDrmKeysRestored() {
         Log.d("DRM Info", "onDrmKeysRestored");
     }
 
-    @Override
+
     public void onDrmKeysRemoved() {
         Log.d("DRM Info", "onDrmKeysRestored");
     }

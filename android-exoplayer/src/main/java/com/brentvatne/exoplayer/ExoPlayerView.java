@@ -121,7 +121,7 @@ public final class ExoPlayerView extends FrameLayout {
     public void setPlayer(SimpleExoPlayer player) {
         if (this.player == player) {
             return;
-        }
+        } 
         if (this.player != null) {
             this.player.setTextOutput(null);
             this.player.setVideoListener(null);

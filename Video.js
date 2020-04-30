@@ -303,6 +303,8 @@ export default class Video extends Component {
     Object.assign(nativeProps, {
       style: [styles.base, nativeProps.style],
       resizeMode: nativeResizeMode,
+      adTagUrl: nativeProps.adTagUrl,
+      streamType: nativeProps.streamType, 
       src: {
         uri,
         isNetwork,
@@ -437,8 +439,11 @@ Video.propTypes = {
   minLoadRetryCount: PropTypes.number,
   maxBitRate: PropTypes.number,
   resizeMode: PropTypes.string,
+  adTagUrl: PropTypes.string,
+  streamType: PropTypes.string,
   poster: PropTypes.string,
   posterResizeMode: Image.propTypes.resizeMode,
+
   repeat: PropTypes.bool,
   automaticallyWaitsToMinimizeStalling: PropTypes.bool,
   allowsExternalPlayback: PropTypes.bool,

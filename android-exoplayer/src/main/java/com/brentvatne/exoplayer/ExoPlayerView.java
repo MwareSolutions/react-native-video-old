@@ -3,6 +3,8 @@ package com.brentvatne.exoplayer;
 import android.annotation.TargetApi;
 import android.content.Context;
 import androidx.core.content.ContextCompat;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
@@ -11,6 +13,9 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
+
+import androidx.core.content.ContextCompat;
 
 import com.google.android.exoplayer2.C;
 import com.google.android.exoplayer2.ExoPlaybackException;
@@ -19,15 +24,19 @@ import com.google.android.exoplayer2.PlaybackParameters;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.Timeline;
 import com.google.android.exoplayer2.source.TrackGroupArray;
+import com.google.android.exoplayer2.source.ads.AdsLoader;
+import com.google.android.exoplayer2.text.CaptionStyleCompat;
 import com.google.android.exoplayer2.text.Cue;
 import com.google.android.exoplayer2.text.TextRenderer;
 import com.google.android.exoplayer2.trackselection.TrackSelectionArray;
 import com.google.android.exoplayer2.ui.SubtitleView;
+import com.google.android.exoplayer2.util.Assertions;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @TargetApi(16)
-public final class ExoPlayerView extends FrameLayout {
+public final class ExoPlayerView extends FrameLayout implements AdsLoader.AdViewProvider{
 
     private View surfaceView;
     private final View shutterView;
@@ -37,9 +46,11 @@ public final class ExoPlayerView extends FrameLayout {
     private SimpleExoPlayer player;
     private Context context;
     private ViewGroup.LayoutParams layoutParams;
+    private final FrameLayout adOverlayFrameLayout;
 
     private boolean useTextureView = true;
     private boolean hideShutterView = false;
+    private RelativeLayout mCompanionAdSlot;
 
     public ExoPlayerView(Context context) {
         this(context, null);
@@ -72,14 +83,27 @@ public final class ExoPlayerView extends FrameLayout {
         shutterView.setBackgroundColor(ContextCompat.getColor(context, android.R.color.black));
 
         subtitleLayout = new SubtitleView(context);
+        int defaultSubtitleColor = Color.argb(255, 218, 218, 218);
+        int outlineColor = Color.argb(255, 43, 43, 43);
+        Typeface subtitleTypeface = Typeface.DEFAULT;
+        CaptionStyleCompat style = new CaptionStyleCompat(defaultSubtitleColor,
+                        Color.TRANSPARENT, Color.TRANSPARENT,
+                        CaptionStyleCompat.EDGE_TYPE_OUTLINE,
+                        outlineColor, subtitleTypeface);
+        subtitleLayout.setStyle(style);
+        subtitleLayout.setApplyEmbeddedStyles(false);
         subtitleLayout.setLayoutParams(layoutParams);
         subtitleLayout.setUserDefaultStyle();
         subtitleLayout.setUserDefaultTextSize();
+
+        adOverlayFrameLayout = new FrameLayout(context);
+        adOverlayFrameLayout.setLayoutParams(layoutParams);
 
         updateSurfaceView();
 
         layout.addView(shutterView, 1, layoutParams);
         layout.addView(subtitleLayout, 2, layoutParams);
+        layout.addView(adOverlayFrameLayout, 3, layoutParams);
 
         addViewInLayout(layout, 0, aspectRatioParams);
     }
@@ -172,6 +196,11 @@ public final class ExoPlayerView extends FrameLayout {
         this.hideShutterView = hideShutterView;
         updateShutterViewVisibility();
     }
+    @Override
+    public void requestLayout() {
+        super.requestLayout();
+        post(measureAndLayout);
+    }
 
     private final Runnable measureAndLayout = new Runnable() {
         @Override
@@ -199,6 +228,28 @@ public final class ExoPlayerView extends FrameLayout {
         shutterView.setVisibility(VISIBLE);
     }
 
+    //    @Override
+//    public ViewGroup getAdViewGroup() {
+//        return null;
+//    }
+//
+//    @Override
+//    public View[] getAdOverlayViews() {
+//        return new View[0];
+//    }
+@Override
+public ViewGroup getAdViewGroup() {
+    return Assertions.checkNotNull(adOverlayFrameLayout, "exo_ad_overlay must be present for ad playback");
+}
+
+@Override
+public View[] getAdOverlayViews() {
+    ArrayList<View> overlayViews = new ArrayList<>();
+    if (adOverlayFrameLayout != null) {
+        overlayViews.add(adOverlayFrameLayout);
+    }
+    return overlayViews.toArray(new View[0]);
+}
     private final class ComponentListener implements SimpleExoPlayer.VideoListener,
             TextRenderer.Output, ExoPlayer.EventListener {
 

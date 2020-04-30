@@ -108,6 +108,7 @@ class ReactExoplayerView extends FrameLayout implements
     private PlayerControlView playerControlView;
     private View playPauseControlContainer;
     private Player.EventListener eventListener;
+    public AdsLoader adsLoader;
 
     private ExoPlayerView exoPlayerView;
     private int initialOrientation;
@@ -152,6 +153,7 @@ class ReactExoplayerView extends FrameLayout implements
     private boolean playInBackground = false;
     private Map<String, String> requestHeaders;
     private boolean mReportBandwidth = false;
+    private Uri adTagUrl;
     private boolean controls;
     public UUID drmUUID = null;
     public String drmLicenseUrl = null;
@@ -457,9 +459,23 @@ class ReactExoplayerView extends FrameLayout implements
                     PlaybackParameters params = new PlaybackParameters(rate, 1f);
                     player.setPlaybackParameters(params);
                 }
-                if (playerNeedsSource && srcUri != null) {
+                if (srcUri.toString().contains("udp") || srcUri.toString().contains("rtp")) {
                     ArrayList<MediaSource> mediaSourceList = buildTextSources();
-                    MediaSource videoSource = buildMediaSource(srcUri, extension);
+                    DataSource.Factory updDatasource = new UdpDataSource.Factory() {
+                        @Override
+                        public DataSource createDataSource() {
+                            return new UdpDataSource(null, 3000, 100000);
+                        }
+                    };
+                    ExtractorsFactory tsExtractorFactory = new ExtractorsFactory() {
+                        @Override
+                        public Extractor[] createExtractors() {
+                            return new TsExtractor[]{new TsExtractor(MODE_SINGLE_PMT,
+                                    new TimestampAdjuster(0), new DefaultTsPayloadReaderFactory())};
+                        }
+                    };
+                    MediaSource videoSource = new ExtractorMediaSource(srcUri, updDatasource, tsExtractorFactory, null, null);
+
                     MediaSource mediaSource;
                     if (mediaSourceList.size() == 0) {
                         mediaSource = videoSource;
@@ -480,6 +496,49 @@ class ReactExoplayerView extends FrameLayout implements
 
                     eventEmitter.loadStart();
                     loadVideoStarted = true;
+                } else if (playerNeedsSource && srcUri != null) {
+                    ArrayList<MediaSource> mediaSourceList = buildTextSources();
+                    MediaSource videoSource = buildMediaSource(srcUri, extension);
+                  
+                    if (adTagUrl != null && srcUri != null) {
+                        adsLoader = new ImaAdsLoader(getContext(), adTagUrl);
+                        adsLoader.setPlayer(player);
+                    }
+                    if (adTagUrl != null && srcUri != null) {
+                        MediaSource mediaSource = new AdsMediaSource(
+                                videoSource,
+                                mediaDataSourceFactory,
+                                adsLoader,
+                                exoPlayerView
+                        );
+                        boolean haveResumePosition = resumeWindow != C.INDEX_UNSET;
+                        if (haveResumePosition) {
+                            player.seekTo(resumeWindow, resumePosition);
+                        }
+                        player.prepare(mediaSource, !haveResumePosition, false);
+                        playerNeedsSource = false;
+                    } else {
+
+                    MediaSource mediaSource;
+                    if (mediaSourceList.size() == 0) {
+                        mediaSource = videoSource;
+                    } else {
+                        mediaSourceList.add(0, videoSource);
+                        MediaSource[] textSourceArray = mediaSourceList.toArray(
+                                new MediaSource[mediaSourceList.size()]
+                        );
+                        mediaSource = new MergingMediaSource(textSourceArray);
+                    }
+
+                    boolean haveResumePosition = resumeWindow != C.INDEX_UNSET;
+                    if (haveResumePosition) {
+                        player.seekTo(resumeWindow, resumePosition);
+                    }
+                    player.prepare(mediaSource, !haveResumePosition, false);
+                    playerNeedsSource = false;
+                }
+                    eventEmitter.loadStart();
+                    loadVideoStarted = true;
                 }
 
                 // Initializing the playerControlView
@@ -488,6 +547,9 @@ class ReactExoplayerView extends FrameLayout implements
                 applyModifiers();
             }
         }, 1);
+    }
+    public void setAdTagUrl(final Uri uri) {
+        adTagUrl = uri;
     }
     private DrmSessionManager<FrameworkMediaCrypto> buildDrmSessionManager(UUID uuid, String licenseUrl, String[] keyRequestPropertiesArray) throws UnsupportedDrmException {
         HttpMediaDrmCallback drmCallback = new HttpMediaDrmCallback(licenseUrl, buildHttpDataSourceFactory(false));

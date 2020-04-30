@@ -45,6 +45,7 @@ static int const RCTVideoUnset = -1;
   BOOL _playbackRateObserverRegistered;
   BOOL _isExternalPlaybackActiveObserverRegistered;
   BOOL _videoLoadStarted;
+  BOOL _isRequestAds;
   
   bool _pendingSeek;
   float _pendingSeekTime;
@@ -79,8 +80,10 @@ static int const RCTVideoUnset = -1;
   NSString * _fullscreenOrientation;
   BOOL _fullscreenPlayerPresented;
   NSString *_filterName;
+  NSString * _adTagUrl;
   BOOL _filterEnabled;
   UIViewController * _presentingViewController;
+  BOOL _isAdsLoaderLoaded;
 #if __has_include(<react-native-video/RCTVideoCache.h>)
   RCTVideoCache * _videoCache;
 #endif
@@ -113,6 +116,8 @@ static int const RCTVideoUnset = -1;
     _allowsExternalPlayback = YES;
     _playWhenInactive = false;
     _pictureInPicture = false;
+      _isRequestAds = false;
+    _isAdsLoaderLoaded = false;
     _ignoreSilentSwitch = @"inherit"; // inherit, ignore, obey
 #if TARGET_OS_IOS
     _restoreUserInterfaceForPIPStopCompletionHandler = NULL;
@@ -275,6 +280,10 @@ static int const RCTVideoUnset = -1;
   [[NSNotificationCenter defaultCenter] postNotificationName:@"RCTVideo_progress" object:nil userInfo:@{@"progress": [NSNumber numberWithDouble: currentTimeSecs / duration]}];
   
   if( currentTimeSecs >= 0 && self.onVideoProgress) {
+        if(!_isRequestAds && currentTimeSecs >= 0.00001) {
+      [self requestAds];
+      _isRequestAds = true;
+    }
     self.onVideoProgress(@{
                            @"currentTime": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
                            @"playableDuration": [self calculatePlayableDuration],
@@ -353,6 +362,11 @@ static int const RCTVideoUnset = -1;
   [self removePlayerTimeObserver];
   [self removePlayerItemObservers];
 
+    self.contentPlayhead = [[IMAAVPlayerContentPlayhead alloc] initWithAVPlayer:_player];
+    if(_isAdsLoaderLoaded == false){
+      _isAdsLoaderLoaded = true;
+     [self setupAdsLoader];
+    }
   dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) 0), dispatch_get_main_queue(), ^{
 
     // perform on next run loop, otherwise other passed react-props may not be set
@@ -742,6 +756,74 @@ static int const RCTVideoUnset = -1;
   }
 }
 
+- (void)setupAdsLoader {
+  // Re-use this IMAAdsLoader instance for the entire lifecycle of your app.
+  self.adsLoader = [[IMAAdsLoader alloc] initWithSettings:nil];
+  // NOTE: This line will cause a warning until the next step, "Get the Ads Manager".
+  self.adsLoader.delegate = self;
+}
+
+- (void)requestAds {
+  // Create an ad display container for ad rendering.
+  IMAAdDisplayContainer *adDisplayContainer =
+      [[IMAAdDisplayContainer alloc] initWithAdContainer:self companionSlots:nil];
+  // Create an ad request with our ad tag, display container, and optional user context.
+  IMAAdsRequest *request = [[IMAAdsRequest alloc] initWithAdTagUrl:_adTagUrl
+                                                adDisplayContainer:adDisplayContainer
+                                                   contentPlayhead:self.contentPlayhead
+                                                       userContext:nil];
+  [self.adsLoader requestAdsWithRequest:request];
+}
+
+#pragma mark AdsLoader Delegates
+
+- (void)adsLoader:(IMAAdsLoader *)loader adsLoadedWithData:(IMAAdsLoadedData *)adsLoadedData {
+  // Grab the instance of the IMAAdsManager and set ourselves as the delegate.
+  self.adsManager = adsLoadedData.adsManager;
+
+  // NOTE: This line will cause a warning until the next step, "Display Ads".
+  self.adsManager.delegate = self;
+
+  // Create ads rendering settings and tell the SDK to use the in-app browser.
+  IMAAdsRenderingSettings *adsRenderingSettings = [[IMAAdsRenderingSettings alloc] init];
+  adsRenderingSettings.webOpenerPresentingController = _playerViewController;
+
+  // Initialize the ads manager.
+  [self.adsManager initializeWithAdsRenderingSettings:adsRenderingSettings];
+}
+
+- (void)adsLoader:(IMAAdsLoader *)loader failedWithErrorData:(IMAAdLoadingErrorData *)adErrorData {
+  // Something went wrong loading ads. Log the error and play the content.
+  NSLog(@"Error loading ads: %@", adErrorData.adError.message);
+  [_player play];
+}
+
+#pragma mark AdsManager Delegates
+
+- (void)adsManager:(IMAAdsManager *)adsManager didReceiveAdEvent:(IMAAdEvent *)event {
+  if (event.type == kIMAAdEvent_LOADED) {
+    // When the SDK notifies us that ads have been loaded, play them.
+    [adsManager start];
+  }
+}
+
+- (void)adsManager:(IMAAdsManager *)adsManager didReceiveAdError:(IMAAdError *)error {
+  // Something went wrong with the ads manager after ads were loaded. Log the error and play the
+  // content.
+  NSLog(@"AdsManager error: %@", error.message);
+  [_player play];
+}
+
+- (void)adsManagerDidRequestContentPause:(IMAAdsManager *)adsManager {
+  // The SDK is going to play ads, so pause the content.
+  [_player pause];
+}
+
+- (void)adsManagerDidRequestContentResume:(IMAAdsManager *)adsManager {
+  // The SDK is done playing ads (at least for now), so resume the content.
+  [_player play];
+}
+
 - (void)attachListeners
 {
   // listen for end of file
@@ -800,6 +882,9 @@ static int const RCTVideoUnset = -1;
 
 - (void)playerItemDidReachEnd:(NSNotification *)notification
 {
+    if (notification.object == _player.currentItem) {
+    [self.adsLoader contentComplete];
+  }
   if(self.onVideoEnd) {
     self.onVideoEnd(@{@"target": self.reactTag});
   }
@@ -1468,6 +1553,10 @@ static int const RCTVideoUnset = -1;
 
 - (void)setFilterEnabled:(BOOL)filterEnabled {
   _filterEnabled = filterEnabled;
+}
+
+- (void)setAdTagUrl:(NSString *)adTagUrl {
+  _adTagUrl = adTagUrl;
 }
 
 #pragma mark - React View Management

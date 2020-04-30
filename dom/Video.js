@@ -5,6 +5,7 @@ import { PropTypes } from 'prop-types';
 type NormalProps = {
   /* Native only */
   adTagUrl: ?string,
+  streamType: ?string,
   source: Object,
   seek?: ?number,
   fullscreen?: ?boolean,
@@ -236,8 +237,8 @@ class Video extends Component<Props> {
       id:"imgup",
       src:require('../assets/outline-arrow_back-white-48/2x/outline_arrow_back_white_48dp.png'),
       style: {
-        width:"48px",
-        height:"48px", 
+        width:"30px",
+        height:"30px", 
         position:"absolute",
         top:"0",
         bottom:"0",
@@ -251,8 +252,8 @@ class Video extends Component<Props> {
       id:"imgdown",
       src:require('../assets/outline-arrow_forward-white-48/2x/outline_arrow_forward_white_48dp.png'),
       style: {
-        width:"48px",
-        height:"48px",
+        width:"30px",
+        height:"30px",
         position:"absolute",
         top:"0",
         bottom:"0",
@@ -266,7 +267,7 @@ class Video extends Component<Props> {
       id:"channelup",
       onClick:this._channelup,
       style: {
-        width:"50px",
+        width:"30px",
         height:"100%",
         position:"absolute",
         top:"0",
@@ -282,7 +283,7 @@ class Video extends Component<Props> {
       id:"channeldown",
       onClick:this._channeldown,
       style: {
-        width:"50px",
+        width:"30px",
         height:"100%",
         position:"absolute",
         top:"0",
@@ -329,7 +330,7 @@ class Video extends Component<Props> {
       //src: source.uri || source,
       onLoadStart: this._onLoadStart,
       onLoadedData: this._onLoad,
-      onLoad: initVideoJS(source.uri, source.type, source.drmUrl, source.drmKeyServerUrl, source.ref, this.props.adTagUrl),
+      onLoad: initVideoJS(source.uri, source.type, source.drmUrl, source.drmKeyServerUrl, source.ref, this.props.adTagUrl, this.props.streamType),
       onError: this._onError,
       onProgress: this._onProgress,
       onSeeking: this._onSeek,
@@ -391,6 +392,7 @@ Video.propTypes = {
   playerdown: PropTypes.func,
   playerback: PropTypes.func,
   adTagUrl: PropTypes.string,
+  streamType: PropTypes.string,
   source: PropTypes.oneOfType([
     PropTypes.shape({
       uri: PropTypes.string,

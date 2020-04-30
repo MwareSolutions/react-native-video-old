@@ -1,7 +1,7 @@
 import { Component } from 'react';
 import { ViewPropTypes, createElement } from 'react-native';
 import { PropTypes } from 'prop-types';
-
+import DRMType from '../DRMType';
 type NormalProps = {
   /* Native only */
   adTagUrl: ?string,
@@ -393,6 +393,17 @@ Video.propTypes = {
   playerback: PropTypes.func,
   adTagUrl: PropTypes.string,
   streamType: PropTypes.string,
+  // source: PropTypes.oneOfType([
+  //   PropTypes.shape({
+  //     uri: PropTypes.string,
+  //     type: PropTypes.string,
+  //     drmUrl: PropTypes.string,
+  //     drmServerUrl: PropTypes.string,
+  //     ref: PropTypes.string,
+  //     drm: source.drm
+  //   }),
+  //   PropTypes.number,
+  // ]),
   source: PropTypes.oneOfType([
     PropTypes.shape({
       uri: PropTypes.string,
@@ -400,8 +411,15 @@ Video.propTypes = {
       drmUrl: PropTypes.string,
       drmServerUrl: PropTypes.string,
       ref: PropTypes.string,
-      full: PropTypes.bool
+      drm: PropTypes.shape({
+        type: PropTypes.oneOf([
+          DRMType.CLEARKEY, DRMType.FAIRPLAY, DRMType.WIDEVINE, DRMType.PLAYREADY
+        ]),
+        licenseServer: PropTypes.string,
+        headers: PropTypes.shape({})
+      })
     }),
+    // Opaque type returned by require('./video.mp4')
     PropTypes.number,
   ]),
   resizeMode: PropTypes.string,

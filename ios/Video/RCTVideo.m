@@ -556,7 +556,7 @@ static int const RCTVideoUnset = -1;
   // End Reset _loadingRequest
   if (self->_drm != nil) {
     dispatch_queue_t queue = dispatch_queue_create("assetQueue", nil);
-    [*asset.resourceLoader setDelegate:self queue:queue];
+    [asset.resourceLoader setDelegate:self queue:queue];
   }
 
   [self playerItemPrepareText:asset assetOptions:assetOptions withCallback:handler];

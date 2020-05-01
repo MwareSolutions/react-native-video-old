@@ -43,6 +43,19 @@
 @property (nonatomic, copy) RCTDirectEventBlock onVideoExternalPlaybackChange;
 @property (nonatomic, copy) RCTDirectEventBlock onPictureInPictureStatusChanged;
 @property (nonatomic, copy) RCTDirectEventBlock onRestoreUserInterfaceForPictureInPictureStop;
+@property (nonatomic, copy) RCTDirectEventBlock onGetLicense;
+
+typedef NS_ENUM(NSInteger, RCTVideoError) {
+    RCTVideoErrorFromJSPart,
+    RCTVideoErrorLicenseRequestNotOk,
+    RCTVideoErrorNoDataFromLicenseRequest,
+    RCTVideoErrorNoSPC,
+    RCTVideoErrorNoDataRequest,
+    RCTVideoErrorNoCertificateData,
+    RCTVideoErrorNoCertificateURL,
+    RCTVideoErrorNoFairplayDRM,
+    RCTVideoErrorNoDRMData
+};
 /// Playhead used by the SDK to track content video progress and insert mid-rolls.
 @property(nonatomic, strong) IMAAVPlayerContentPlayhead *contentPlayhead;
 /// Entry point for the SDK. Used to make ad requests.

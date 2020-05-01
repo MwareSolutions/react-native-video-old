@@ -17,6 +17,7 @@ Pod::Spec.new do |s|
 
   s.subspec "Video" do |ss|
     ss.source_files  = "ios/Video/*.{h,m}"
+    ss.dependency "GoogleAds-IMA-iOS-SDK", "~> 3.9"
     s.static_framework = true
   end
 

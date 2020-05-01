@@ -543,7 +543,11 @@ static int const RCTVideoUnset = -1;
     [self playerItemPrepareText:asset assetOptions:assetOptions withCallback:handler];
     return;
   }
-    // Reset _loadingRequest
+
+
+  AVURLAsset *asset = [AVURLAsset URLAssetWithURL:[[NSURL alloc] initFileURLWithPath:[[NSBundle mainBundle] pathForResource:uri ofType:type]] options:nil];
+  
+      // Reset _loadingRequest
   if (_loadingRequest != nil) {
     [_loadingRequest finishLoading];
   }
@@ -552,10 +556,9 @@ static int const RCTVideoUnset = -1;
   // End Reset _loadingRequest
   if (self->_drm != nil) {
     dispatch_queue_t queue = dispatch_queue_create("assetQueue", nil);
-    [asset.resourceLoader setDelegate:self queue:queue];
+    [*asset.resourceLoader setDelegate:self queue:queue];
   }
 
-  AVURLAsset *asset = [AVURLAsset URLAssetWithURL:[[NSURL alloc] initFileURLWithPath:[[NSBundle mainBundle] pathForResource:uri ofType:type]] options:nil];
   [self playerItemPrepareText:asset assetOptions:assetOptions withCallback:handler];
 }
 

@@ -227,9 +227,7 @@ class Video extends Component<Props> {
   render() {
     const {
       source,
-      volume,
-      controls,
-      style,
+      drm
       
     } = this.props;
 
@@ -330,11 +328,11 @@ class Video extends Component<Props> {
       //src: source.uri || source,
       onLoadStart: this._onLoadStart,
       onLoadedData: this._onLoad,
-      onLoad: initVideoJS(source.uri, source.type, source.drmUrl, source.drmKeyServerUrl, source.ref, this.props.adTagUrl, this.props.streamType),
+      onLoad: initVideoJS(source.uri, source.type, drm.headers, drm.licenseServer, source.ref, this.props.adTagUrl, this.props.streamType),
       onError: this._onError,
       onProgress: this._onProgress,
       onSeeking: this._onSeek,
-      onEnded: this._onEnd,
+      onEnded: this._onEnd, 
       onLoadedMetadata: this._onTimedMetadata,
       onCanPlay: this._onReadyForDisplay,
       onStalled: this._onPlaybackStalled,
@@ -411,17 +409,17 @@ Video.propTypes = {
       drmUrl: PropTypes.string,
       drmServerUrl: PropTypes.string,
       ref: PropTypes.string,
-      drm: PropTypes.shape({
-        type: PropTypes.oneOf([
-          DRMType.CLEARKEY, DRMType.FAIRPLAY, DRMType.WIDEVINE, DRMType.PLAYREADY
-        ]),
-        licenseServer: PropTypes.string,
-        headers: PropTypes.shape({})
-      })
     }),
     // Opaque type returned by require('./video.mp4')
     PropTypes.number,
   ]),
+  drm: PropTypes.shape({
+    type: PropTypes.oneOf([
+      DRMType.CLEARKEY, DRMType.FAIRPLAY, DRMType.WIDEVINE, DRMType.PLAYREADY
+    ]),
+    licenseServer: PropTypes.string,
+    headers: PropTypes.string
+  }),
   resizeMode: PropTypes.string,
   poster: PropTypes.string,
   repeat: PropTypes.bool,

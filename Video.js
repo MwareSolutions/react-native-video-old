@@ -314,7 +314,7 @@ export default class Video extends Component {
         mainVer: source.mainVer || 0,
         patchVer: source.patchVer || 0,
         requestHeaders: source.headers ? this.stringsOnlyObject(source.headers) : {},
-        drm: source.drm
+        drm: nativeProps.drm
       },
       onVideoLoadStart: this._onLoadStart,
       onVideoLoad: this._onLoad,
@@ -425,17 +425,17 @@ Video.propTypes = {
   source: PropTypes.oneOfType([
     PropTypes.shape({
       uri: PropTypes.string,
-      drm: PropTypes.shape({
-        type: PropTypes.oneOf([
-          DRMType.CLEARKEY, DRMType.FAIRPLAY, DRMType.WIDEVINE, DRMType.PLAYREADY
-        ]),
-        licenseServer: PropTypes.string,
-        headers: PropTypes.shape({})
-      })
     }),
     // Opaque type returned by require('./video.mp4')
     PropTypes.number,
   ]),
+  drm: PropTypes.shape({
+    type: PropTypes.oneOf([
+      DRMType.CLEARKEY, DRMType.FAIRPLAY, DRMType.WIDEVINE, DRMType.PLAYREADY
+    ]),
+    licenseServer: PropTypes.string,
+    headers: PropTypes.shape({})
+  }),
   minLoadRetryCount: PropTypes.number,
   maxBitRate: PropTypes.number,
   resizeMode: PropTypes.string,

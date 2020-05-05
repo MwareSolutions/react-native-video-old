@@ -34,6 +34,30 @@ type NormalProps = {
   style: ?PropTypes.StyleSheet,
 
 
+  // resizeMode: PropTypes.string,
+  // poster: PropTypes.string,
+  // repeat: PropTypes.bool,
+  // paused: PropTypes.bool,
+  // muted: PropTypes.bool,
+  // volume: PropTypes.number,
+  // rate: PropTypes.number,
+  // playInBackground: PropTypes.bool,
+  // playWhenInactive: PropTypes.bool,
+  // ignoreSilentSwitch: PropTypes.oneOf(['ignore', 'obey']),
+  // disableFocus: PropTypes.bool,
+  // controls: PropTypes.bool,
+  // currentTime: PropTypes.number,
+  // progressUpdateInterval: PropTypes.number,
+  // onFullscreenPlayerWillPresent: PropTypes.func,
+  // onFullscreenPlayerDidPresent: PropTypes.func,
+  // onFullscreenPlayerWillDismiss: PropTypes.func,
+  // onFullscreenPlayerDidDismiss: PropTypes.func,
+  // onReadyForDisplay: PropTypes.func,
+  // onPlaybackStalled: PropTypes.func,
+  // onPlaybackResume: PropTypes.func,
+  // onPlaybackRateChange: PropTypes.func,
+  // onAudioFocusChanged: PropTypes.func,
+  // onAudioBecomingNoisy: PropTypes.func,
 };
 
 /* $FlowFixMe - the renderItem passed in from SectionList is optional there but
@@ -203,7 +227,10 @@ class Video extends Component<Props> {
   render() {
     const {
       source,
-      drm
+      volume,
+      controls,
+      style,
+      
     } = this.props;
 
     this.imgup = createElement('img', {
@@ -303,7 +330,7 @@ class Video extends Component<Props> {
       //src: source.uri || source,
       onLoadStart: this._onLoadStart,
       onLoadedData: this._onLoad,
-      onLoad: initVideoJS(source.uri, source.type, drm.headers, drm.licenseServer, source.ref, this.props.adTagUrl, this.props.streamType),
+      onLoad: initVideoJS(source.uri, source.type, source.drmUrl, source.drmKeyServerUrl, source.ref, this.props.adTagUrl, this.props.streamType),
       onError: this._onError,
       onProgress: this._onProgress,
       onSeeking: this._onSeek,
@@ -366,22 +393,35 @@ Video.propTypes = {
   playerback: PropTypes.func,
   adTagUrl: PropTypes.string,
   streamType: PropTypes.string,
+  // source: PropTypes.oneOfType([
+  //   PropTypes.shape({
+  //     uri: PropTypes.string,
+  //     type: PropTypes.string,
+  //     drmUrl: PropTypes.string,
+  //     drmServerUrl: PropTypes.string,
+  //     ref: PropTypes.string,
+  //     drm: source.drm
+  //   }),
+  //   PropTypes.number,
+  // ]),
   source: PropTypes.oneOfType([
     PropTypes.shape({
       uri: PropTypes.string,
       type: PropTypes.string,
-      ref: PropTypes.string
+      drmUrl: PropTypes.string,
+      drmServerUrl: PropTypes.string,
+      ref: PropTypes.string,
+      drm: PropTypes.shape({
+        type: PropTypes.oneOf([
+          DRMType.CLEARKEY, DRMType.FAIRPLAY, DRMType.WIDEVINE, DRMType.PLAYREADY
+        ]),
+        licenseServer: PropTypes.string,
+        headers: PropTypes.shape({})
+      })
     }),
     // Opaque type returned by require('./video.mp4')
     PropTypes.number,
   ]),
-  drm: PropTypes.shape({
-    type: PropTypes.oneOf([
-      DRMType.CLEARKEY, DRMType.FAIRPLAY, DRMType.WIDEVINE, DRMType.PLAYREADY
-    ]),
-    licenseServer: PropTypes.string,
-    headers: PropTypes.string
-  }),
   resizeMode: PropTypes.string,
   poster: PropTypes.string,
   repeat: PropTypes.bool,

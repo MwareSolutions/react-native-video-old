@@ -5,7 +5,9 @@
 #import "RCTVideoPlayerViewControllerDelegate.h"
 #import <React/RCTComponent.h>
 #import <React/RCTBridgeModule.h>
+#if !TARGET_OS_TV
 @import GoogleInteractiveMediaAds;
+#endif
 
 #if __has_include(<react-native-video/RCTVideoCache.h>)
 #import <react-native-video/RCTVideoCache.h>
@@ -56,12 +58,15 @@ typedef NS_ENUM(NSInteger, RCTVideoError) {
     RCTVideoErrorNoFairplayDRM,
     RCTVideoErrorNoDRMData
 };
+
+#if !TARGET_OS_TV
 /// Playhead used by the SDK to track content video progress and insert mid-rolls.
 @property(nonatomic, strong) IMAAVPlayerContentPlayhead *contentPlayhead;
 /// Entry point for the SDK. Used to make ad requests.
 @property(nonatomic, strong) IMAAdsLoader *adsLoader;
 /// Main point of interaction with the SDK. Created by the SDK as the result of an ad request.
 @property(nonatomic, strong) IMAAdsManager *adsManager;
+#endif
 
 - (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher NS_DESIGNATED_INITIALIZER;
 

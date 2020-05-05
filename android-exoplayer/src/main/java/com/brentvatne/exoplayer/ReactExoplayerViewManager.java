@@ -31,7 +31,7 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     private static final String PROP_SRC = "src";
     private static final String PROP_SRC_URI = "uri";
     private static final String PROP_SRC_TYPE = "type";
-    private static final String PROP_AD_TAG_URL = "adTagUrl";
+
     private static final String PROP_SRC_DRM = "drm";
     private static final String PROP_SRC_DRM_TYPE = "type";
     private static final String PROP_SRC_DRM_LICENSESERVER = "licenseServer";
@@ -84,12 +84,6 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     @Override
     protected ReactExoplayerView createViewInstance(ThemedReactContext themedReactContext) {
         return new ReactExoplayerView(themedReactContext, config);
-    }
-    @ReactProp(name = PROP_AD_TAG_URL)
-    public void setAdTagUrl(final ReactExoplayerView videoView, final String adTagUrl) {
-        if(adTagUrl != null) {
-            videoView.setAdTagUrl(Uri.parse(adTagUrl));
-        }
     }
 
     @Override

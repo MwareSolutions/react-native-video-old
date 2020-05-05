@@ -280,10 +280,12 @@ static int const RCTVideoUnset = -1;
   [[NSNotificationCenter defaultCenter] postNotificationName:@"RCTVideo_progress" object:nil userInfo:@{@"progress": [NSNumber numberWithDouble: currentTimeSecs / duration]}];
   
   if( currentTimeSecs >= 0 && self.onVideoProgress) {
+      #if !TARGET_OS_TV
         if(!_isRequestAds && currentTimeSecs >= 0.00001) {
       [self requestAds];
       _isRequestAds = true;
     }
+#endif
     self.onVideoProgress(@{
                            @"currentTime": [NSNumber numberWithFloat:CMTimeGetSeconds(currentTime)],
                            @"playableDuration": [self calculatePlayableDuration],
@@ -362,11 +364,13 @@ static int const RCTVideoUnset = -1;
   [self removePlayerTimeObserver];
   [self removePlayerItemObservers];
 
+    #if !TARGET_OS_TV
     self.contentPlayhead = [[IMAAVPlayerContentPlayhead alloc] initWithAVPlayer:_player];
     if(_isAdsLoaderLoaded == false){
       _isAdsLoaderLoaded = true;
      [self setupAdsLoader];
     }
+    #endif
   dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t) 0), dispatch_get_main_queue(), ^{
 
     // perform on next run loop, otherwise other passed react-props may not be set
@@ -758,7 +762,7 @@ static int const RCTVideoUnset = -1;
       }
   }
 }
-
+#if !TARGET_OS_TV
 - (void)setupAdsLoader {
   // Re-use this IMAAdsLoader instance for the entire lifecycle of your app.
   self.adsLoader = [[IMAAdsLoader alloc] initWithSettings:nil];
@@ -826,7 +830,7 @@ static int const RCTVideoUnset = -1;
   // The SDK is done playing ads (at least for now), so resume the content.
   [_player play];
 }
-
+#endif
 - (void)attachListeners
 {
   // listen for end of file
@@ -886,7 +890,9 @@ static int const RCTVideoUnset = -1;
 - (void)playerItemDidReachEnd:(NSNotification *)notification
 {
     if (notification.object == _player.currentItem) {
+        #if !TARGET_OS_TV
     [self.adsLoader contentComplete];
+#endif
   }
   if(self.onVideoEnd) {
     self.onVideoEnd(@{@"target": self.reactTag});

@@ -446,7 +446,6 @@ class ReactExoplayerView extends FrameLayout implements
                     if (drmUUID != null) {
                         try {
                             drmSessionManager = buildDrmSessionManager(drmUUID, drmLicenseUrl, drmLicenseHeader);
-                           // drmSessionManager.setPropertyString("securityLevel", "L3");
                         } catch (UnsupportedDrmException e) {
                             int errorStringId = Util.SDK_INT < 18 ? R.string.error_drm_not_supported
                                     : (e.reason == UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME
@@ -516,6 +515,8 @@ class ReactExoplayerView extends FrameLayout implements
                     if (adTagUrl != null && srcUri != null) {
                         adsLoader = new ImaAdsLoader(getContext(), adTagUrl);
                         ((ImaAdsLoader) adsLoader).setPlayer(player);
+                    }
+                    if (adTagUrl != null && srcUri != null) {
                         MediaSource mediaSource = new AdsMediaSource(
                                 videoSource,
                                 mediaDataSourceFactory,
@@ -529,24 +530,25 @@ class ReactExoplayerView extends FrameLayout implements
                         player.prepare(mediaSource, !haveResumePosition, false);
                         playerNeedsSource = false;
                     } else {
-                        MediaSource mediaSource;
-                        if (mediaSourceList.size() == 0) {
-                            mediaSource = videoSource;
-                        } else {
-                            mediaSourceList.add(0, videoSource);
-                            MediaSource[] textSourceArray = mediaSourceList.toArray(
-                                    new MediaSource[mediaSourceList.size()]
-                            );
-                            mediaSource = new MergingMediaSource(textSourceArray);
-                        }
 
-                        boolean haveResumePosition = resumeWindow != C.INDEX_UNSET;
-                        if (haveResumePosition) {
-                            player.seekTo(resumeWindow, resumePosition);
-                        }
-                        player.prepare(mediaSource, !haveResumePosition, false);
-                        playerNeedsSource = false;
+                    MediaSource mediaSource;
+                    if (mediaSourceList.size() == 0) {
+                        mediaSource = videoSource;
+                    } else {
+                        mediaSourceList.add(0, videoSource);
+                        MediaSource[] textSourceArray = mediaSourceList.toArray(
+                                new MediaSource[mediaSourceList.size()]
+                        );
+                        mediaSource = new MergingMediaSource(textSourceArray);
                     }
+
+                    boolean haveResumePosition = resumeWindow != C.INDEX_UNSET;
+                    if (haveResumePosition) {
+                        player.seekTo(resumeWindow, resumePosition);
+                    }
+                    player.prepare(mediaSource, !haveResumePosition, false);
+                    playerNeedsSource = false;
+                }
                     eventEmitter.loadStart();
                     loadVideoStarted = true;
                 }

@@ -88,10 +88,12 @@ import com.google.android.exoplayer2.util.Util;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.net.URL;
 
 import static com.google.android.exoplayer2.extractor.ts.TsExtractor.MODE_SINGLE_PMT;
 
@@ -248,7 +250,7 @@ class ReactExoplayerView extends FrameLayout implements
         /* We want to be able to continue playing audio when switching tabs.
          * Leave this here in case it causes issues.
          */
-        // stopPlayback();
+        stopPlayback();
     }
 
     // LifecycleEventListener implementation
@@ -471,8 +473,11 @@ class ReactExoplayerView extends FrameLayout implements
                     PlaybackParameters params = new PlaybackParameters(rate, 1f);
                     player.setPlaybackParameters(params);
                 }
-                if (srcUri.toString().contains("udp") || srcUri.toString().contains("rtp")) {
+            if(srcUri != null){
+                if (srcUri != null && srcUri.toString().contains("udp:") || srcUri.toString().contains("rtp:")) {
+
                     ArrayList<MediaSource> mediaSourceList = buildTextSources();
+             
                     DataSource.Factory updDatasource = new UdpDataSource.Factory() {
                         @Override
                         public DataSource createDataSource() {
@@ -552,6 +557,7 @@ class ReactExoplayerView extends FrameLayout implements
                     eventEmitter.loadStart();
                     loadVideoStarted = true;
                 }
+            }
 
                 // Initializing the playerControlView
                 initializePlayerControl();
@@ -620,8 +626,10 @@ class ReactExoplayerView extends FrameLayout implements
             case C.TYPE_HLS:
                 return new HlsMediaSource.Factory(
                         mediaDataSourceFactory
-                ).setLoadErrorHandlingPolicy(
+                )
+                .setLoadErrorHandlingPolicy(
                         config.buildLoadErrorHandlingPolicy(minLoadRetryCount)
+                      
                 ).createMediaSource(uri);
             case C.TYPE_OTHER:
                 return new ProgressiveMediaSource.Factory(

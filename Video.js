@@ -287,6 +287,7 @@ export default class Video extends Component {
     const isAsset = !!(uri && uri.match(/^(assets-library|ipod-library|file|content|ms-appx|ms-appdata):/));
 
     let nativeResizeMode;
+  
     const RCTVideoInstance = this.getViewManagerConfig('RCTVideo');
 
     if (resizeMode === VideoResizeMode.stretch) {
@@ -303,8 +304,8 @@ export default class Video extends Component {
     Object.assign(nativeProps, {
       style: [styles.base, nativeProps.style],
       resizeMode: nativeResizeMode,
-      adTagUrl: nativeProps.adTagUrl,
-      streamType: nativeProps.streamType, 
+      adTagUrl: this.props.adTagUrl,
+      streamType: this.props.streamType, 
       src: {
         uri,
         isNetwork,
@@ -314,7 +315,8 @@ export default class Video extends Component {
         mainVer: source.mainVer || 0,
         patchVer: source.patchVer || 0,
         requestHeaders: source.headers ? this.stringsOnlyObject(source.headers) : {},
-        drm: source.drm
+        drm: source.drm,
+        adTagUrl: this.props.adTagUrl,
       },
       onVideoLoadStart: this._onLoadStart,
       onVideoLoad: this._onLoad,

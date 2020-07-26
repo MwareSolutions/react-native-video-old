@@ -31,7 +31,7 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
     private static final String PROP_SRC = "src";
     private static final String PROP_SRC_URI = "uri";
     private static final String PROP_SRC_TYPE = "type";
-
+    private static final String PROP_SRC_AD_TAG_URL = "adTagUrl";
     private static final String PROP_SRC_DRM = "drm";
     private static final String PROP_SRC_DRM_TYPE = "type";
     private static final String PROP_SRC_DRM_LICENSESERVER = "licenseServer";
@@ -115,9 +115,13 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
         Context context = videoView.getContext().getApplicationContext();
         String uriString = src.hasKey(PROP_SRC_URI) ? src.getString(PROP_SRC_URI) : null;
         String extension = src.hasKey(PROP_SRC_TYPE) ? src.getString(PROP_SRC_TYPE) : null;
+        String adTagUrl = src.hasKey(PROP_SRC_AD_TAG_URL) ? src.getString(PROP_SRC_AD_TAG_URL) : null;
         Map<String, String> headers = src.hasKey(PROP_SRC_HEADERS) ? toStringMap(src.getMap(PROP_SRC_HEADERS)) : null;
         ReadableMap drm = src.hasKey(PROP_SRC_DRM) ? src.getMap(PROP_SRC_DRM) : null;
 
+        if (!TextUtils.isEmpty(adTagUrl)) {
+            videoView.setAdTagUrl(Uri.parse(adTagUrl));
+        }
 
         if (TextUtils.isEmpty(uriString)) {
             return;
@@ -173,6 +177,7 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
             }
         }
     }
+
 
     @ReactProp(name = PROP_RESIZE_MODE)
     public void setResizeMode(final ReactExoplayerView videoView, final String resizeModeOrdinalString) {
@@ -331,7 +336,8 @@ public class ReactExoplayerViewManager extends ViewGroupManager<ReactExoplayerVi
                 || uriString.startsWith("https://")
                 || uriString.startsWith("content://")
                 || uriString.startsWith("file://")
-                || uriString.startsWith("asset://");
+                || uriString.startsWith("asset://")
+                || uriString.startsWith("udp://"); 
     }
 
     private @ResizeMode.Mode int convertToIntDef(String resizeModeOrdinalString) {
